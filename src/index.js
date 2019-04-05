@@ -3,32 +3,23 @@ document.addEventListener("DOMContentLoaded",domLoadFunctions)
 
 function domLoadFunctions() {
   console.log("we're in.")
-  addPups(filterForAllPups, renderPups)
-  document.addEventListener("click", dogEnhance)
-}
+  addPups(renderPups)
+  document.addEventListener("click", dogEnhanceOrSupport)
 // Fetch Functionss
-function addPups(filter,renderFunction){
+function addPups(renderFunction){
   fetch('http://localhost:3000/pups')
   .then(response => response.json())
   .then(function(myJson) {
-    renderFunction(filterPups(myJson, filter))
+    renderFunction(myJson)
   });
 }
 
-// filterer function, takes in a filter callback
-function filterPups(json, filter){
-  let puppos = json
-  puppos = json.filter(filter)
-  console.log("filter in filter function", filter)
-  console.log("filtered puppos", puppos)
-  return puppos
-
-}
 // filter callbacks
 const filterForAllPups = pup => pup
 
 function renderPups(json){
   const dogBar = document.getElementById('dog-bar')
+  dogBar.innerHTML =''
   let puppos = json
   puppos.forEach(puppo => {
     const newSpan = document.createElement("SPAN")
@@ -39,14 +30,35 @@ function renderPups(json){
   })
 }
 
-function dogEnhance(e){
-  if (e.target.dataset.action){
+function dogEnhanceOrSupport(e){
+  console.log("e", e.target.dataset)
+  if (e.target.dataset.action === "enhance"){
+    console.log("in the if")
+    addPups(renderFunction)}
+  else if (e.target.dataset.action === "boopPuppo")
+    {
+    let goodDogChanger
+      if (!!e.target.dataset.isgooddog){goodDogChanger = false} else {goodDogChanger=true}
+    console.log(e.target)
+    console.log(goodDogChanger)
+    fetch(`http://localhost:3000/pups/${parseInt(e.target.dataset.id)}`, {
+      method: "PATCH",
+      headers: {
+          "Content-Type": "application/json",
+      },
+      body: JSON.stringify({id: e.target.dataset.id, isGoodDog: !!goodDogChanger}),
+    })
+    .then(response => response.json())
+    .then(function(myJson) {renderFunction(myJson)})};
+  function renderFunction(puppos){
+    let foundDog
+    if (Array.isArray(puppos)){
+    foundDog = puppos.filter(puppo => parseInt(puppo.id) == e.target.dataset.id)[0]}
+    else {foundDog = puppos}
     const dogInfoDiv = document.getElementById("dog-info")
-    const pup = addPups((puppo => puppo.id === e.target.dataset.id), renderFunction)
-    function renderFunction(puppo){
-      console.log("puppo in render function", puppo)
     dogInfoDiv.innerHTML = `
-      <img src=${puppo.image}>
-      <h2>${puppo.name}</h2>
-      <button>Good Dog!</button>`}}
+      <img src=${foundDog.image}>
+      <h2>${foundDog.name}</h2>
+      <button data-id=${foundDog.id}, data-action="boopPuppo", data-isGoodDog=${!!foundDog.isGoodDog}>${!!foundDog.isGoodDog ? "Good Dog!" : "Bad Dog!" }</button>`
+    }}
   }
