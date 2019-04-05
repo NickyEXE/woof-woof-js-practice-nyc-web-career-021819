@@ -1,64 +1,75 @@
 
-document.addEventListener("DOMContentLoaded",domLoadFunctions)
+document.addEventListener("DOMContentLoaded", domLoadFunctions)
+function domLoadFunctions(){
+  const dogBar = document.getElementById("dog-bar")
+  const filterButton = document.getElementById('good-dog-filter')
+  filterButton.setAttribute("data-clicked", false)
+  function filterButtonIsFalse() {return filterButton.getAttribute('data-clicked')=="false"}
+  doggoHeader(filterButton.getAttribute('data-clicked'))
+  document.addEventListener("click",clickInterpreter)
 
-function domLoadFunctions() {
-  console.log("we're in.")
-  addPups(renderPups)
-  document.addEventListener("click", dogEnhanceOrSupport)
-// Fetch Functionss
-function addPups(renderFunction){
+function doggoHeader(goodFilter){
   fetch('http://localhost:3000/pups')
   .then(response => response.json())
   .then(function(myJson) {
-    renderFunction(myJson)
-  });
-}
-
-// filter callbacks
-const filterForAllPups = pup => pup
-
-function renderPups(json){
-  const dogBar = document.getElementById('dog-bar')
-  dogBar.innerHTML =''
-  let puppos = json
-  puppos.forEach(puppo => {
-    const newSpan = document.createElement("SPAN")
-    newSpan.setAttribute('data-id', puppo.id)
-    newSpan.setAttribute('data-action', "enhance")
-    newSpan.innerText = puppo.name
-    return dogBar.appendChild(newSpan)
+    doggoHeaderRenderer(myJson,goodFilter);
   })
-}
+  function doggoHeaderRenderer(json,goodFilter){
+    let doggos = json
+    dogBar.innerHTML = ''
+    if (goodFilter === true){
+      doggos = doggos.filter(doggo => !!doggo["isGoodDog"])
+    }
+    doggos.forEach(doggo => {
+    const dogDiv = document.createElement("span")
+    dogDiv.setAttribute("data-id", doggo.id)
+    dogDiv.classList.add("bubble")
+    dogDiv.innerText = doggo.name
+    dogBar.appendChild(dogDiv)
+      })
+    }
+    ;
+  }
 
-function dogEnhanceOrSupport(e){
-  console.log("e", e.target.dataset)
-  if (e.target.dataset.action === "enhance"){
-    console.log("in the if")
-    addPups(renderFunction)}
-  else if (e.target.dataset.action === "boopPuppo")
-    {
-    let goodDogChanger
-      if (!!e.target.dataset.isgooddog){goodDogChanger = false} else {goodDogChanger=true}
-    console.log(e.target)
-    console.log(goodDogChanger)
-    fetch(`http://localhost:3000/pups/${parseInt(e.target.dataset.id)}`, {
-      method: "PATCH",
-      headers: {
-          "Content-Type": "application/json",
-      },
-      body: JSON.stringify({id: e.target.dataset.id, isGoodDog: !!goodDogChanger}),
-    })
+  function clickInterpreter(e){
+    if (e.target.id==="good-dog-filter"){headerChanger()}
+    if (e.target.classList.value == "bubble"){expandDoggo(e.target.dataset.id)}}
+  function headerChanger(){
+    console.log(filterButtonIsFalse())
+    if (filterButtonIsFalse()){filterButton.setAttribute("data-clicked", true);doggoHeader(true);filterButton.innerText ="Filter Good Dogs: ON"}
+    else {filterButton.setAttribute("data-clicked", false); doggoHeader(false);filterButton.innerText ="Filter Good Dogs: OFF"}
+  }
+
+  function expandDoggo(id){
+    fetch(`http://localhost:3000/pups/${id}`)
     .then(response => response.json())
-    .then(function(myJson) {renderFunction(myJson)})};
-  function renderFunction(puppos){
-    let foundDog
-    if (Array.isArray(puppos)){
-    foundDog = puppos.filter(puppo => parseInt(puppo.id) == e.target.dataset.id)[0]}
-    else {foundDog = puppos}
-    const dogInfoDiv = document.getElementById("dog-info")
-    dogInfoDiv.innerHTML = `
-      <img src=${foundDog.image}>
-      <h2>${foundDog.name}</h2>
-      <button data-id=${foundDog.id}, data-action="boopPuppo", data-isGoodDog=${!!foundDog.isGoodDog}>${!!foundDog.isGoodDog ? "Good Dog!" : "Bad Dog!" }</button>`
-    }}
+    .then(function(doggo) {
+      doggoRenderer(doggo);
+    })
+    function doggoRenderer(doggo){
+      const doggoWindow = document.getElementById('dog-info')
+      const id = doggo.id
+      const img = doggo.image
+      const name = doggo.name
+      let isGoodDog = doggo["isGoodDog"]
+      console.log ("the opposite of the dog's status", !isGoodDog)
+      doggoWindow.innerHTML =
+      `<img src=${img}>
+        <h2>${name}</h2>
+        <button id="goodDogButton" >${isGoodDog ? "Make This Good Dog Bad" : "Make This Bad Dog Good"}</button>`
+      button = document.getElementById("goodDogButton")
+      button.addEventListener("click", changeDogStatus)
+      function changeDogStatus(e){
+        console.log("isGoodDog:", isGoodDog)
+        console.log("!isGoodDog:", !isGoodDog)
+        console.log(id)
+        fetch(`http://localhost:3000/pups/${id}`,
+        {
+            method: "PATCH", // *GET, POST, PUT, DELETE, etc.
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({id: id, isGoodDog: !isGoodDog})
+          })
+        .then(expandDoggo(id))}
+      }
+    }
   }
